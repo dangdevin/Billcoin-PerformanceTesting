@@ -23,7 +23,7 @@ class Block
 			sum += x
 		end
 		value = sum % 65536
-		value.to_s(16).strip
+		value.to_s(16)
 	end
 
 
