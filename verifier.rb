@@ -132,6 +132,7 @@ class Verifier
 			puts "Line #{block.block_number}: the from address #{transaction.from_addr} is too long."
 			return -1
 		end
+		return 1
 	end
 
 	def self.check_to_addr_length(block, transaction)
@@ -139,20 +140,23 @@ class Verifier
 			puts "Line #{block.block_number}: the from address #{transaction.to_addr} is too long."
 			return -1
 		end
+		return 1
 	end
 
 	def self.check_from_addr_invalid_char(block, transaction)
-		if !transaction.from_addr.match(/[[:alpha:]]/)
+		if !transaction.from_addr.match(/[A-Z]|[a-z]/)
 			puts "Line #{block.block_number}: the from address #{transaction.from_addr} contains an invalid character."
 			return -1
 		end
+		return 1
 	end
 
 	def self.check_to_addr_invalid_char(block, transaction)
-		if !transaction.to_addr.match(/[[:alpha:]]/)
+		if !transaction.to_addr.match(/[A-Z]|[a-z]/)
 			puts "Line #{block.block_number}: the from address #{transaction.to_addr} contains an invalid character."
 			return -1
 		end
+		return 1
 	end
 
 
@@ -247,7 +251,7 @@ class Verifier
 				i += 1
 			end
 		end
-		
+
 		j = 0
 		while j < @blocks.count 
 			if check_block_number(j, @blocks[j]) == -1
@@ -270,6 +274,7 @@ class Verifier
 		print_outcome
 	end
 end
+
 #Flamegraph.generate('flamegrapher.html') do
 	Verifier.run
 #end
