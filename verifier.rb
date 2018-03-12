@@ -102,25 +102,10 @@ class Verifier
 					exit 0
 				end
 				
-				if @transactions[j].from_addr.length > 6
-					puts "Line #{@blocks[i].block_number}: the from address #{transactions[j].from_addr} is too long."
-					return -1
-				end
-				
-				if @transactions[j].to_addr.length > 6
-					puts "Line #{@blocks[i].block_number}: the to address #{transactions[j].to_addr} is too long."
-					return -1
-				end
-				
-				if !@transactions[j].from_addr.match(/[[:alpha:]]/)
-					puts "Line #{@blocks[i].block_number}: the from address #{transactions[j].from_addr} contains an invalid character."
-					return -1
-				end
-				
-				if !@transactions[j].to_addr.match(/[[:alpha:]]/)
-					puts "Line #{@blocks[i].block_number}: the to address #{transactions[j].to_addr} contains an invalid character."
-					return -1
-				end
+				check_from_addr_length(@blocks[i], @transactions[j])
+				check_to_addr_length(@blocks[i], @transactions[j])
+				check_from_addr_invalid_char(@blocks[i], @transactions[j])
+				check_to_addr_invalid_char(@blocks[i], @transactions[j])
 				
 				if i == @blocks.count - 1
 					if j == transactions_semicolon_split.count - 1
@@ -142,6 +127,35 @@ class Verifier
 		return 1
 	end
 
+	def self.check_from_addr_length(block, transaction)
+		if transaction.from_addr.length > 6
+			puts "Line #{block.block_number}: the from address #{transaction.from_addr} is too long."
+			return -1
+		end
+	end
+
+	def self.check_to_addr_length(block, transaction)
+		if transaction.to_addr.length > 6
+			puts "Line #{block.block_number}: the from address #{transaction.to_addr} is too long."
+			return -1
+		end
+	end
+
+	def self.check_from_addr_invalid_char(block, transaction)
+		if !transaction.from_addr.match(/[[:alpha:]]/)
+			puts "Line #{block.block_number}: the from address #{transaction.from_addr} contains an invalid character."
+			return -1
+		end
+	end
+
+	def self.check_to_addr_invalid_char(block, transaction)
+		if !transaction.to_addr.match(/[[:alpha:]]/)
+			puts "Line #{block.block_number}: the from address #{transaction.to_addr} contains an invalid character."
+			return -1
+		end
+	end
+
+
 	def self.check_balances(i)
 		@balance.each do |key, value|
 			if value < 0
@@ -152,73 +166,50 @@ class Verifier
 		return 1
 	end
 
-	def self.compare_timestamps
-		if @blocks.count > 1
-			i = 1
-			while i < @blocks.count
-				timestamp_one_string_partitions = @blocks[i-1].timestamp.split('.')
-				timestamp_two_string_partitions = @blocks[i].timestamp.split('.')
+	def self.compare_timestamps(block1, block2)
+		timestamp_one_string_partitions = block1.timestamp.split('.')
+		timestamp_two_string_partitions = block2.timestamp.split('.')
 
-				timestamp_one_partitions = timestamp_one_string_partitions.map(&:to_i)
-				timestamp_two_partitions = timestamp_two_string_partitions.map(&:to_i)
+		timestamp_one_partitions = timestamp_one_string_partitions.map(&:to_i)
+		timestamp_two_partitions = timestamp_two_string_partitions.map(&:to_i)
 
-				if timestamp_two_partitions[0] < timestamp_one_partitions[0]
-					puts "Line #{@blocks[i].block_number}: Previous timestamp #{@blocks[i-1].timestamp} >= new timestamp #{@blocks[i].timestamp}"
-					return -1
-				end
-
-				if timestamp_two_partitions[0] == timestamp_one_partitions[0]
-					if timestamp_two_partitions[1] <= timestamp_one_partitions[1]
-						puts "Line #{@blocks[i].block_number}: Previous timestamp #{@blocks[i-1].timestamp} >= new timestamp #{@blocks[i].timestamp}"
-						return -1
-					end
-				end
-				i += 1
-			end
+		if timestamp_two_partitions[0] < timestamp_one_partitions[0]
+			puts "Line #{block2.block_number}: Previous timestamp #{block1.timestamp} >= new timestamp #{block2.timestamp}"
+			return -1
 		end
-		return 1
-	end
 
-	def self.check_block_number
-		i = 0
-		while i < @blocks.count
-			if i != @blocks[i].block_number
-				puts "Invalid block number #{@blocks[i].block_number}, should be #{i}"
+		if timestamp_two_partitions[0] == timestamp_one_partitions[0]
+			if timestamp_two_partitions[1] <= timestamp_one_partitions[1]
+				puts "Line #{block2.block_number}: Previous timestamp #{block1.timestamp} >= new timestamp #{block2.timestamp}"
 				return -1
 			end
-			i += 1
 		end
 		return 1
 	end
 
-	def self.compare_hashes
-		if @blocks.count > 1
-			i = 0
-			while i < @blocks.count
-				correct_hash = @blocks[i].hash_block
-				if !correct_hash.strip.eql? @blocks[i].current_hash.strip
-					puts "Line #{@blocks[i].block_number}: String '#{@blockchain[i].strip}' hash set to #{@blocks[i].current_hash.strip}, should be #{correct_hash}"
-					return -1
-				end
-				i += 1
-			end
+	def self.check_block_number(index_number, block)
+		if index_number != block.block_number
+			puts "Invalid block number #{block.block_number}, should be #{index_number}"
+			return -1
 		end
 		return 1
 	end
 
-	def self.check_previous_hashes
-		if @blocks.count > 1
-			i = 1
-			while i < @blocks.count
-				if !@blocks[i].previous_hash.strip.eql? @blocks[i-1].current_hash.strip
-					puts "Line #{@blocks[i].block_number}: Previous hash was #{@blocks[i].previous_hash.strip}, should be #{@blocks[i-1].current_hash.strip}"
-					return -1
-				end
-				i += 1
-			end
-			return 1
-			puts "Hello."
+	def self.compare_hashes(block)
+		correct_hash = block.hash_block
+		if !correct_hash.strip.eql? block.current_hash.strip
+			puts "Line #{block.block_number}: String '#{block.block_number}|#{block.previous_hash}|#{block.sequence_tranactions}|#{block.timestamp}' hash set to #{block.current_hash.strip}, should be #{correct_hash}"
+			return -1
 		end
+		return 1
+	end
+
+	def self.check_previous_hashes(block1, block2)
+		if !block2.previous_hash.strip.eql? block1.current_hash.strip
+			puts "Line #{block2.block_number}: Previous hash was #{block2.previous_hash.strip}, should be #{block1.current_hash.strip}"
+			return -1
+		end
+		return 1
 	end
 
 	def self.check_zero_previous_hash(block)
@@ -241,22 +232,36 @@ class Verifier
 			puts "BLOCKCHAIN INVALID"
 			exit 0
 		end
-		if check_previous_hashes == -1
-			puts "BLOCKCHAIN INVALID"
-			exit 0
+		
+		if @blocks.count > 1
+			i = 1
+			while i < @blocks.count
+				if compare_timestamps(@blocks[i-1], @blocks[i]) == -1
+					puts "BLOCKCHAIN INVALID"
+					exit 0
+				end
+				if check_previous_hashes(@blocks[i-1], @blocks[i]) == -1
+					puts "BLOCKCHAIN INVALID"
+					exit 0
+				end
+				i += 1
+			end
 		end
-		if check_block_number == -1
-			puts "BLOCKCHAIN INVALID"
-			exit 0
+		
+		j = 0
+		while j < @blocks.count 
+			if check_block_number(j, @blocks[j]) == -1
+				puts "BLOCKCHAIN INVALID"
+				exit 0
+			end
+			if compare_hashes(@blocks[j]) == -1
+				puts "BLOCKCHAIN INVALID"
+				exit 0
+			end
+			j +=1
 		end
-		if compare_timestamps == -1
-			puts "BLOCKCHAIN INVALID"
-			exit 0
-		end
-		if compare_hashes == -1
-			puts "BLOCKCHAIN INVALID"
-			exit 0
-		end
+		
+		
 
 		if check_zero_previous_hash(@blocks[0]) == -1
 			puts "BLOCKCHAIN INVALID"
